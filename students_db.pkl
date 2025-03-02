@@ -1,0 +1,165 @@
+import pickle
+import numpy as np
+from pathlib import Path
+import os
+import datetime
+
+# Ensure the Student class matches the main code's structure
+class Student:
+    def __init__(self, id, name, course, year, section, email, phone, additional_info=None):
+        self.id = id
+        self.name = name
+        self.course = course
+        self.year = year
+        self.section = section
+        self.email = email
+        self.phone = phone
+        self.additional_info = additional_info or {}
+        self.attendance_record = []
+        self.last_detected = None
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "course": self.course,
+            "year": self.year,
+            "section": self.section,
+            "email": self.email,
+            "phone": self.phone,
+            "additional_info": self.additional_info,
+            "attendance_record": self.attendance_record,
+            "last_detected": self.last_detected
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        student = cls(
+            data["id"],
+            data["name"],
+            data["course"],
+            data["year"],
+            data["section"],
+            data["email"],
+            data["phone"],
+            data.get("additional_info", {})
+        )
+        student.attendance_record = data.get("attendance_record", [])
+        student.last_detected = data.get("last_detected")
+        return student
+
+# Create and save dummy data
+if os.path.exists('students_db.pkl'):
+    os.remove('students_db.pkl')
+
+students_db = {}
+
+# Create 5 dummy students with fake face encodings
+dummy_students = [
+    {
+        "id": "2023001",
+        "name": "John Smith",
+        "course": "Computer Science",
+        "year": 3,
+        "section": "A",
+        "email": "john.smith@example.com",
+        "phone": "123-456-7890",
+        "additional_info": {"notes": "Team leader for senior project"}
+    },
+    {
+        "id": "2023002",
+        "name": "Emily Johnson",
+        "course": "Electrical Engineering",
+        "year": 2,
+        "section": "B",
+        "email": "emily.johnson@example.com",
+        "phone": "234-567-8901",
+        "additional_info": {"notes": "Scholarship recipient"}
+    },
+    {
+        "id": "2023003",
+        "name": "Michael Davis",
+        "course": "Mathematics",
+        "year": 4,
+        "section": "A",
+        "email": "michael.davis@example.com",
+        "phone": "345-678-9012",
+        "additional_info": {"notes": "Exchange student"}
+    },
+    {
+        "id": "2023004",
+        "name": "Sophia Martinez",
+        "course": "Computer Science",
+        "year": 1,
+        "section": "C",
+        "email": "sophia.martinez@example.com",
+        "phone": "456-789-0123",
+        "additional_info": {"notes": ""}
+    },
+    {
+        "id": "2023005",
+        "name": "Daniel Wilson",
+        "course": "Physics",
+        "year": 3,
+        "section": "B",
+        "email": "daniel.wilson@example.com",
+        "phone": "567-890-1234",
+        "additional_info": {"notes": "Tutoring assistant"}
+    }
+]
+
+# Create students and add to database
+for student_data in dummy_students:
+    student = Student(
+        id=student_data["id"],
+        name=student_data["name"],
+        course=student_data["course"],
+        year=student_data["year"],
+        section=student_data["section"],
+        email=student_data["email"],
+        phone=student_data["phone"],
+        additional_info=student_data["additional_info"]
+    )
+
+    # Add a random 128-dimensional face encoding vector
+    # This simulates the face recognition feature without needing actual images
+    face_encoding = np.random.normal(0, 0.5, 128)  # Random normal distribution
+    face_encoding = face_encoding / np.linalg.norm(face_encoding)  # Normalize to unit vector
+
+    # Setup some random attendance records within the last month
+    today = datetime.datetime.now()
+    for i in range(10):  # Add 10 random attendance days
+        days_ago = np.random.randint(1, 30)
+        attendance_date = today - datetime.timedelta(days=days_ago)
+        student.attendance_record.append(attendance_date.isoformat())
+
+    # Set last detection for some students
+    if np.random.random() > 0.3:  # 70% chance to have been detected recently
+        days_ago = np.random.randint(0, 3)
+        last_detected = today - datetime.timedelta(days=days_ago)
+        student.last_detected = last_detected
+
+    # Add to database
+    students_db[student.id] = {
+        "encoding": face_encoding,
+        "student": student
+    }
+
+# Save using the to_dict method
+db_to_save = {}
+for student_id, data in students_db.items():
+    db_to_save[student_id] = {
+        "encoding": data["encoding"],
+        "student": data["student"].to_dict()
+    }
+
+# First write to a temporary file
+temp_file = 'students_db.pkl.temp'
+with open(temp_file, 'wb') as f:
+    pickle.dump(db_to_save, f)
+
+# Then move to the final file name
+Path(temp_file).replace('students_db.pkl')
+
+print(f"Successfully created dummy database with {len(students_db)} students")
+print("File saved as: students_db.pkl")
